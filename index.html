@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <title>만주어 입력기</title>
+  <style>
+    @font-face {
+      font-family: 'ManchuFont';
+      src: url('MongolianUniversalWhite.ttf') format('truetype');
+    }
+
+    body {
+      margin: 0;
+      padding: 1rem 2rem 2rem 2rem;
+      font-family: sans-serif;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f2f2f2; /* 아이폰 은색 배경 */
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    .container {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .manchu-output {
+      font-family: 'ManchuFont', serif;
+      font-size: 36px;
+      writing-mode: vertical-lr;
+      direction: ltr;
+      border: 1px solid #ccc;
+      border-radius: 8px; /* 둥근 모서리 추가 */
+      padding: 1rem;
+      width: 97.5mm;
+      height: 141mm;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      word-break: break-word;
+      overflow-y: auto;
+      display: block;
+      text-align: start;
+      vertical-align: top;
+      background-color: white;
+    }
+
+    textarea {
+      width: 101.5mm;
+      height: 145.3mm;
+      font-size: 18px;
+      resize: none;
+      border-radius: 8px; /* 둥근 모서리 추가 */
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>만주어 입력 도우미</h1>
+  <div class="container">
+    <div>
+      <label for="roman">로마자 입력</label><br>
+      <textarea id="roman" placeholder="ex) mini ajige pingguri"></textarea>
+    </div>
+    <div>
+      <div>만주어 출력</div>
+      <div class="manchu-output" id="manchuOutput"></div>
+    </div>
+  </div>
+
+  <script>
+    const mapping = {
+      "a": "ᠠ", "e": "ᡝ", "i": "ᡳ", "o": "ᠣ", "u": "ᡠ", "v": "ᡡ",
+      "k": "ᡴ", "g": "ᡤ", "h": "ᡥ", "m": "ᠮ", "n": "ᠨ",
+      "l": "ᠯ", "s": "ᠰ", "x": "ᡧ",
+      "b": "ᠪ", "p": "ᡦ", "j": "ᠵ", "c": "ᠴ", "y": "ᠶ",
+      "r": "ᡵ", "f": "ᡶ", "w": "ᠸ", "z": "ᠽ", "ž": "ᡯ",
+      "ng": "ᠩ", "t": "ᡨ", "d": "ᡩ",
+      "ta": "ᡨᠠ", "ti": "ᡨᡳ", "to": "ᡨᠣ", "te": "ᡨᡝ", "tu": "ᡨᡠ", "tv": "ᡨᡡ",
+      "da": "ᡩᠠ", "di": "ᡩᡳ", "do": "ᡩᠣ", "de": "ᡩᡝ", "du": "ᡩᡠ", "dv": "ᡩᡡ",
+      "ka": "ᡴᠠ", "ke": "ᡴᡝ", "ki": "ᡴᡳ", "ko": "ᡴᠣ", "ku": "ᡴᡠ",
+      "ga": "ᡤᠠ", "ge": "ᡤᡝ", "gi": "ᡤᡳ", "go": "ᡤᠣ", "gu": "ᡤᡠ",
+      "na": "ᠨᠠ", "ne": "ᠨᡝ", "ni": "ᠨᡳ", "no": "ᠨᠣ", "nu": "ᠨᡠ",
+      "ma": "ᠮᠠ", "me": "ᠮᡝ", "mi": "ᠮᡳ", "mo": "ᠮᠣ", "mu": "ᠮᡠ",
+      "la": "ᠯᠠ", "le": "ᠯᡝ", "li": "ᠯᡳ", "lo": "ᠯᠣ", "lu": "ᠯᡠ",
+      "ya": "ᠶᠠ", "ye": "ᠶᡝ", "yi": "ᠶᡳ", "yo": "ᠶᠣ", "yu": "ᠶᡠ",
+      "sa": "ᠰᠠ", "se": "ᠰᡝ", "si": "ᠰᡳ", "so": "ᠰᠣ", "su": "ᠰᡠ",
+      "ba": "ᠪᠠ", "be": "ᠪᡝ", "bi": "ᠪᡳ", "bo": "ᠪᠣ", "bu": "ᠪᡠ",
+      "ra": "ᡵᠠ", "re": "ᡵᡝ", "ri": "ᡵᡳ", "ro": "ᡵᠣ", "ru": "ᡵᡠ",
+      "fa": "ᡶᠠ", "fe": "ᡶᡝ", "fi": "ᡶᡳ", "fo": "ᡶᠣ", "fu": "ᡶᡠ",
+      "za": "ᠽᠠ", "ze": "ᠽᡝ", "zi": "ᠽᡳ", "zo": "ᠽᠣ", "zu": "ᠽᡠ",
+      "," : "᠈", "." : "᠉"
+    };
+
+    function convertText() {
+      const input = document.getElementById('roman').value;
+      const lines = input.split('\n');
+      let output = '';
+
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const words = lines[lineIndex].trim().split(/\s+/);
+
+        for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+          let word = words[wordIndex];
+          let i = 0;
+          while (i < word.length) {
+            let matched = false;
+
+           if (i + 1 < word.length) {
+            let twoChar = word.substring(i, i + 2).toLowerCase();
+            let doubleIVowels = ['ai', 'ei', 'oi', 'ui', 'vi'];
+
+            if (doubleIVowels.includes(twoChar)) {
+              let firstChar = twoChar[0];
+              let firstMapped = mapping[firstChar];
+              let iMapped = mapping['i'];
+
+              if (firstMapped && iMapped) {
+                output += firstMapped + iMapped; // 항상 i 한 번만
+                i += 2;
+                matched = true;
+                continue;
+              }
+            }
+          }
+
+            for (let j = 3; j >= 1; j--) {
+              let chunk = word.substring(i, i + j).toLowerCase();
+              if (mapping[chunk]) {
+                output += mapping[chunk];
+                i += j;
+                matched = true;
+                break;
+              }
+            }
+
+            if (!matched) {
+              output += word[i];
+              i++;
+            }
+          }
+
+          if (wordIndex !== words.length - 1) {
+            output += '\u2002';
+          }
+        }
+
+        if (lineIndex !== lines.length - 1) {
+          output += '\n';
+        }
+      }
+
+      document.getElementById('manchuOutput').textContent = output;
+    }
+
+    document.getElementById('roman').addEventListener('input', convertText);
+  </script>
+</body>
+</html>
